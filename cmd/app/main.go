@@ -50,10 +50,10 @@ func main() {
 			if err := rcvMSg.GetError(); err != nil {
 				fmt.Println(fmt.Errorf("error revieve message: %w", err).Error())
 			} else {
-				if v, ok := rcvMSg.Data.(string); ok {
+				if v, ok := rcvMSg.GetData().(string); ok {
 					fmt.Printf("Recieve message from channel 1: %s\n", v)
 				} else {
-					fmt.Printf("error type assertion for message: %v\n", rcvMSg.Data)
+					fmt.Printf("error type assertion for message: %v\n", rcvMSg.GetData())
 				}
 			}
 		}
@@ -62,10 +62,10 @@ func main() {
 	// Reading a message into channel 1
 	go func() {
 		for rcvMSg := range exc.ReadChannel(exchange.ExchangeChannel2) {
-			if v, ok := rcvMSg.Data.(string); ok {
+			if v, ok := rcvMSg.GetData().(string); ok {
 				fmt.Printf("Recieve message from channel 2: %s\n", v)
 			} else {
-				fmt.Printf("Error revieve message: %v\n", rcvMSg.Data)
+				fmt.Printf("Error revieve message: %v\n", rcvMSg.GetData())
 			}
 		}
 	}()

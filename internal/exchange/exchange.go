@@ -15,9 +15,26 @@ const (
 
 var defaultSize int = 10
 
+type StatusChannelImpl interface {
+	GetError() error
+	GetData() interface{}
+}
+type StatusChannel struct {
+	Data interface{}
+	err  error
+}
+
+func (sc StatusChannel) GetError() error {
+	return sc.err
+}
+
+func (sc StatusChannel) GetData() interface{} {
+	return sc.Data
+}
+
 type Exchange struct {
 	mu  sync.RWMutex
-	Exc map[interface{}]chan StatusChannel
+	Exc map[interface{}]chan StatusChannelImpl
 	err error
 }
 
@@ -25,18 +42,9 @@ func (ex *Exchange) GetError() error {
 	return ex.err
 }
 
-type StatusChannel struct {
-	Data interface{}
-	err  error
-}
-
-func (sc *StatusChannel) GetError() error {
-	return sc.err
-}
-
 func Init() *Exchange {
 	exc := &Exchange{
-		Exc: make(map[interface{}]chan StatusChannel),
+		Exc: make(map[interface{}]chan StatusChannelImpl),
 	}
 	return exc
 }
@@ -49,15 +57,15 @@ func (ex *Exchange) NewChannel(idChannel int, sizeChannel ...int) *Exchange {
 	ex.mu.Lock()
 	defer ex.mu.Unlock()
 	if _, ok := ex.Exc[idChannel]; !ok {
-		ex.Exc[idChannel] = make(chan StatusChannel, defaultSize)
+		ex.Exc[idChannel] = make(chan StatusChannelImpl, defaultSize)
 	} else {
 		ex.err = fmt.Errorf("failed create channel")
 	}
 	return ex
 }
 
-func (ex *Exchange) ReadChannel(idChannel int) <-chan StatusChannel {
-	var outCh = make(chan StatusChannel, cap(ex.Exc[idChannel]))
+func (ex *Exchange) ReadChannel(idChannel int) <-chan StatusChannelImpl {
+	var outCh = make(chan StatusChannelImpl, cap(ex.Exc[idChannel]))
 	go func() {
 		for s := range ex.Exc[idChannel] {
 			outCh <- s
@@ -66,7 +74,7 @@ func (ex *Exchange) ReadChannel(idChannel int) <-chan StatusChannel {
 	return outCh
 }
 
-func (ex *Exchange) WriteChannel(idChannel int, status StatusChannel) {
+func (ex *Exchange) WriteChannel(idChannel int, status StatusChannelImpl) {
 	go func() {
 		ex.mu.Lock()
 		defer ex.mu.Unlock()
