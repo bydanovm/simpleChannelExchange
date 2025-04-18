@@ -1,6 +1,9 @@
 package exchange
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 const (
 	ExchangeChannel1 int = iota + 1
@@ -15,6 +18,11 @@ var defaultSize int = 10
 type Exchange struct {
 	mu  sync.RWMutex
 	Exc map[interface{}]chan StatusChannel
+	err error
+}
+
+func (ex *Exchange) GetError() error {
+	return ex.err
 }
 
 type StatusChannel struct {
@@ -40,7 +48,11 @@ func (ex *Exchange) NewChannel(idChannel int, sizeChannel ...int) *Exchange {
 	}
 	ex.mu.Lock()
 	defer ex.mu.Unlock()
-	ex.Exc[idChannel] = createChannel(defaultSize)
+	if _, ok := ex.Exc[idChannel]; !ok {
+		ex.Exc[idChannel] = make(chan StatusChannel, defaultSize)
+	} else {
+		ex.err = fmt.Errorf("failed create channel")
+	}
 	return ex
 }
 
@@ -55,17 +67,9 @@ func (ex *Exchange) ReadChannel(idChannel int) <-chan StatusChannel {
 }
 
 func (ex *Exchange) WriteChannel(idChannel int, status StatusChannel) {
-	ex.mu.Lock()
-	defer ex.mu.Unlock()
-	ex.Exc[idChannel] <- status
-}
-
-func createChannel(sizeChannel ...int) chan StatusChannel {
-	var defaultSize int = 10
-	for size := range sizeChannel {
-		defaultSize = size
-		break
-	}
-	ch := make(chan StatusChannel, defaultSize)
-	return ch
+	go func() {
+		ex.mu.Lock()
+		defer ex.mu.Unlock()
+		ex.Exc[idChannel] <- status
+	}()
 }

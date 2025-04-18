@@ -10,9 +10,15 @@ import (
 
 func main() {
 	// Initializing two channels
-	exc := exchange.Init().
-		NewChannel(exchange.ExchangeChannel1).
-		NewChannel(exchange.ExchangeChannel2)
+	exc := exchange.Init()
+	// Init channel exchange with buffer size 5
+	if err := exc.NewChannel(exchange.ExchangeChannel1, 5).GetError(); err != nil {
+		panic(fmt.Errorf("%w", err).Error())
+	}
+	// Init channel exchange with default buffer size 10
+	if err := exc.NewChannel(exchange.ExchangeChannel2).GetError(); err != nil {
+		panic(fmt.Errorf("%w", err).Error())
+	}
 
 	// Writing a message to channel 1
 	go func() {
